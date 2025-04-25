@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivia Deportiva</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+      position: relative;
+      text-align: center;
+    }
+    .question {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .options button, .start-btn, .restart-btn {
+      display: block;
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+      position: relative;
+    }
+    .options button:hover, .start-btn:hover, .restart-btn:hover {
+      background: #2980b9;
+    }
+    .result, .welcome, .goodbye {
+      display: none;
+      font-size: 1.2rem;
+      margin-top: 1rem;
+    }
+    .trophy {
+      display: none;
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 80px;
+      height: 80px;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/616/616489.png');
+      background-size: cover;
+      animation: bounceIn 1s;
+    }
+    .incorrect {
+      position: absolute;
+      top: 50%;
+      left: 90%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      color: red;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container animate__animated animate__fadeIn">
+    <div class="trophy animate__animated animate__bounceIn" id="trophy"></div>
+    <div class="welcome" id="welcome">
+      <h2>¡Bienvenidos a la Trivia Deportiva! 🏅</h2>
+      <p>Pon a prueba tus conocimientos en deportes. ¡Buena suerte!</p>
+      <button class="start-btn" onclick="iniciarTrivia()">Comenzar</button>
+    </div>
+    <div id="quiz">
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+    </div>
+    <div class="result" id="result"></div>
+    <div class="goodbye" id="goodbye">
+      <p>¡Gracias por jugar! 🏁</p>
+      <button class="restart-btn" onclick="reiniciarTrivia()">Volver a jugar</button>
+    </div>
+  </div>
+  <audio id="correctSound" src="https://www.soundjay.com/button/sounds/button-3.mp3" preload="auto"></audio>
+  <script>
+    const preguntas = [
+      { q: "¿En qué deporte se utiliza una red y una raqueta?", o: ["Fútbol", "Béisbol", "Tenis", "Baloncesto"], a: 2 },
+      { q: "¿Cuál es el país con más Copas del Mundo de fútbol ganadas?", o: ["Alemania", "Argentina", "Italia", "Brasil"], a: 3 },
+      { q: "¿Cuántos jugadores hay en un equipo de voleibol en cancha?", o: ["5", "6", "7", "8"], a: 1 },
+      { q: "¿Qué atleta ganó 8 medallas de oro en una sola olimpiada?", o: ["Usain Bolt", "Michael Phelps", "Carl Lewis", "Mark Spitz"], a: 1 },
+      { q: "¿Qué equipo de la NBA ha ganado más campeonatos?", o: ["Lakers", "Celtics", "Bulls", "Warriors"], a: 1 },
+      { q: "¿Cuál es el evento deportivo más visto en el mundo?", o: ["Super Bowl", "Final de la Champions", "Copa Mundial de Fútbol", "Juegos Olímpicos"], a: 2 },
+      { q: "¿Qué corredor es conocido como el más rápido del mundo?", o: ["Carl Lewis", "Asafa Powell", "Tyson Gay", "Usain Bolt"], a: 3 },
+      { q: "¿En qué deporte se realiza un 'strike'?", o: ["Tenis", "Fútbol", "Béisbol", "Bolos"], a: 3 },
+      { q: "¿Cuál es el nombre del torneo de tenis que se juega sobre césped?", o: ["Roland Garros", "US Open", "Wimbledon", "Australian Open"], a: 2 },
+      { q: "¿En qué deporte se usan esquís y bastones?", o: ["Snowboard", "Patinaje artístico", "Esquí", "Hockey sobre hielo"], a: 2 }
+    ];
+
+    let preguntaActual = 0;
+    let puntuacion = 0;
+    const trophy = document.getElementById('trophy');
+    const correctSound = document.getElementById('correctSound');
+
+    function iniciarTrivia() {
+      document.getElementById('welcome').style.display = 'none';
+      document.getElementById('quiz').style.display = 'block';
+      mostrarPregunta();
+    }
+
+    function mostrarPregunta() {
+      trophy.style.display = 'none';
+      const optionsContainer = document.getElementById('options');
+      optionsContainer.innerHTML = '';
+
+      if (preguntaActual < preguntas.length) {
+        const pregunta = preguntas[preguntaActual];
+        document.getElementById('question').textContent = pregunta.q;
+        pregunta.o.forEach((opcion, index) => {
+          const button = document.createElement('button');
+          button.textContent = opcion;
+          button.onclick = () => verificarRespuesta(index, button);
+          const xMark = document.createElement('span');
+          xMark.className = 'incorrect';
+          xMark.textContent = '✖';
+          button.appendChild(xMark);
+          optionsContainer.appendChild(button);
+        });
+      } else {
+        mostrarResultado();
+      }
+    }
+
+    function verificarRespuesta(opcionSeleccionada, boton) {
+      if (opcionSeleccionada === preguntas[preguntaActual].a) {
+        puntuacion++;
+        trophy.style.display = 'block';
+        correctSound.currentTime = 0;
+        correctSound.play();
+        setTimeout(() => {
+          trophy.style.display = 'none';
+          siguientePregunta();
+        }, 1000);
+      } else {
+        boton.querySelector('.incorrect').style.display = 'inline';
+        setTimeout(() => {
+          siguientePregunta();
+        }, 1000);
+      }
+    }
+
+    function siguientePregunta() {
+      preguntaActual++;
+      mostrarPregunta();
+    }
+
+    function mostrarResultado() {
+      document.getElementById('quiz').style.display = 'none';
+      const result = document.getElementById('result');
+      let mensaje;
+      if (puntuacion === 10) {
+        mensaje = "¡Perfecto! 10/10 🎉";
+      } else if (puntuacion >= 7) {
+        mensaje = `¡Muy bien! Obtuviste ${puntuacion}/10 👏`;
+      } else if (puntuacion >= 4) {
+        mensaje = `Bien, pero puedes mejorar. ${puntuacion}/10 💪`;
+      } else {
+        mensaje = `Necesitas repasar un poco. ${puntuacion}/10 😅`;
+      }
+      result.textContent = mensaje;
+      result.style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('result').style.display = 'none';
+        document.getElementById('goodbye').style.display = 'block';
+      }, 3000);
+    }
+
+    function reiniciarTrivia() {
+      preguntaActual = 0;
+      puntuacion = 0;
+      document.getElementById('goodbye').style.display = 'none';
+      iniciarTrivia();
+    }
+
+    window.onload = () => {
+      document.getElementById('welcome').style.display = 'block';
+      document.getElementById('quiz').style.display = 'none';
+    };
+  </script>
+</body>
+</html>
